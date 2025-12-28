@@ -12,9 +12,9 @@ import { BoardService, Board } from '../../core/services/board.service';
 export class PostFormComponent implements OnInit {
   loading = false;
   error?: string;
-  id = this.route.snapshot.paramMap.get('id');
-  slug = this.route.snapshot.paramMap.get('slug');
   boards: Board[] = [];
+  board?: Board;
+  id?: string | null;
   form = this.fb.group({
     boardId: [null as number | null, [Validators.required]],
     title: ['', [Validators.required, Validators.maxLength(120)]],
@@ -38,18 +38,37 @@ export class PostFormComponent implements OnInit {
   async ngOnInit() {
     this.loading = true;
     try {
+      this.id = this.route.snapshot.paramMap.get('id');
+      const slugParam = this.route.snapshot.paramMap.get('slug');
       this.boards = (await firstValueFrom(this.boardsService.getBoards())) || [];
-      const currentBoard = this.boards.find(b => b.slug === this.slug);
-      if (currentBoard) this.form.patchValue({ boardId: currentBoard.id });
+      this.board = this.boards.find(b => b.slug === slugParam) || this.boards.find(b => b.isDefault) || this.boards[0];
+      if (!this.board) {
+        await this.router.navigate(['/boards']);
+        return;
+      }
+      this.form.patchValue({ boardId: this.board.id });
+
+      if (this.id) {
+        const post = await firstValueFrom(this.api.getPostByBoard(this.board.slug, this.id));
+        this.form.patchValue({
+          boardId: post.boardId ?? this.board.id,
+          title: post.title ?? '',
+          content: post.content ?? '',
+          tags: Array.isArray(post.tags) ? post.tags.join(', ') : '',
+          publishStart: post.publishStart ? String(post.publishStart).slice(0, 16) : '',
+          publishEnd: post.publishEnd ? String(post.publishEnd).slice(0, 16) : ''
+        });
+      }
     } catch (err: any) {
-      this.error = err?.message || '게시판 목록을 불러올 수 없습니다.';
+      this.error = err?.message || 'Unable to load post form.';
     } finally {
       this.loading = false;
     }
   }
 
   async submit() {
-    if (this.form.invalid || !this.slug) {
+    const targetSlug = this.board?.slug;
+    if (this.form.invalid || !targetSlug) {
       this.form.markAllAsTouched();
       return;
     }
@@ -61,16 +80,16 @@ export class PostFormComponent implements OnInit {
         tags: this.form.value.tags?.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5),
         publishStart: this.form.value.publishStart || null,
         publishEnd: this.form.value.publishEnd || null,
-        boardSlug: this.slug
+        boardSlug: targetSlug
       };
       if (this.id) {
-        await firstValueFrom(this.api.updatePost(this.slug, this.id, payload));
+        await firstValueFrom(this.api.updatePost(targetSlug, this.id, payload));
       } else {
         await firstValueFrom(this.api.createPost(payload));
       }
-      await this.router.navigate(['/boards', this.slug, 'posts']);
+      await this.router.navigate(['/boards', targetSlug, 'posts']);
     } catch (err: any) {
-      this.error = err?.message || '저장 실패';
+      this.error = err?.message || '?€???¤íŒ¨';
     } finally {
       this.loading = false;
     }

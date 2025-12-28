@@ -4,6 +4,7 @@
   <li *ngFor="let b of boards">
     <strong>{{ b.name }}</strong> ({{ b.slug }}) - {{ b.type }}
     <span *ngIf="b.isDefault">[default]</span>
+    <a [routerLink]="['/boards', b.slug, 'posts']">보기</a>
   </li>
 </ul>
 

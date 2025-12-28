@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 
 export interface Board {
   id: number;
@@ -24,5 +24,16 @@ export class BoardService {
       ...payload,
       isDefault: payload.isDefault ? 1 : 0
     });
+  }
+
+  async getDefaultBoard(): Promise<Board | null> {
+    const boards = await firstValueFrom(this.getBoards()).catch(() => []);
+    if (!boards || boards.length === 0) return null;
+    return boards.find(b => b.isDefault) || boards[0];
+  }
+
+  async getDefaultBoardSlug(): Promise<string | null> {
+    const board = await this.getDefaultBoard();
+    return board?.slug ?? null;
   }
 }

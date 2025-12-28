@@ -22,16 +22,18 @@ export class PostsComponent implements OnInit {
   async load(page = 1) {
     this.loading = true;
     try {
-      const slug = this.route.snapshot.paramMap.get('slug');
-      if (!slug) {
-        this.router.navigate(['/boards']);
+      const boardList = await firstValueFrom(this.boards.getBoards());
+      const slugParam = this.route.snapshot.paramMap.get('slug');
+      this.board = boardList.find(b => b.slug === slugParam) || boardList.find(b => b.isDefault) || boardList[0];
+      if (!this.board) {
+        await this.router.navigate(['/boards']);
         return;
       }
-      const boardList = await firstValueFrom(this.boards.getBoards());
-      this.board = boardList.find(b => b.slug === slug) || boardList[0];
-      if (!this.board) throw new Error('게시판을 찾을 수 없습니다.');
-      const res: any = await firstValueFrom(this.api.getPosts({ page, boardSlug: slug }));
-      this.posts = res?.data || res?.posts || res?.data || [];
+      if (!slugParam || slugParam !== this.board.slug) {
+        this.router.navigate(['/boards', this.board.slug, 'posts']);
+      }
+      const res: any = await firstValueFrom(this.api.getPosts({ page, boardSlug: this.board.slug }));
+      this.posts = res?.data || res?.posts || [];
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);

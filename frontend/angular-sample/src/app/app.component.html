@@ -1,8 +1,8 @@
 <header class="app-header">
   <h1>{{ title }}</h1>
   <nav>
-    <a routerLink="/posts" routerLinkActive="active">Posts</a>
-    <a routerLink="/posts/new" routerLinkActive="active">New Post</a>
+    <a [routerLink]="postsLink" routerLinkActive="active">Posts</a>
+    <a [routerLink]="newPostLink" routerLinkActive="active">New Post</a>
     <a routerLink="/boards" routerLinkActive="active">Boards</a>
     <a routerLink="/profile" routerLinkActive="active">Profile</a>
     <a routerLink="/login" routerLinkActive="active">Login</a>
