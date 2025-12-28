@@ -1,5 +1,13 @@
-﻿<h2>{{ id ? '글 수정' : '글 작성' }}</h2>
+<h2>{{ id ? "글 수정" : "글 작성" }}</h2>
 <form [formGroup]="form" (ngSubmit)="submit()">
+  <label>게시판
+    <select formControlName="boardId">
+      <option [ngValue]="null">선택하세요</option>
+      <option *ngFor="let b of boards" [ngValue]="b.id">{{ b.name }} ({{ b.type }})</option>
+    </select>
+  </label>
+  <div class="hint" *ngIf="f.boardId.touched && f.boardId.invalid">게시판을 선택하세요.</div>
+
   <label>제목 <input formControlName="title" /></label>
   <div class="hint" *ngIf="f.title.touched && f.title.invalid">
     <span *ngIf="f.title.errors?.['required']">제목을 입력하세요.</span>
@@ -12,7 +20,8 @@
     <span *ngIf="f.content.errors?.['maxlength']">본문은 최대 {{ f.content.errors?.['maxlength'].requiredLength }}자까지 가능합니다.</span>
   </div>
   <label>태그(콤마 구분, 최대 5개) <input formControlName="tags" /></label>
+  <label>게시 시작 <input formControlName="publishStart" type="datetime-local" /></label>
+  <label>게시 종료 <input formControlName="publishEnd" type="datetime-local" /></label>
   <button type="submit" [disabled]="loading">저장</button>
   <div *ngIf="error" class="error">{{ error }}</div>
 </form>
-

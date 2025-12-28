@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
+const boardRoutes = require('./routes/boards');
 const postRoutes = require('./routes/posts');
 const commentRoutes = require('./routes/comments');
 const reactionRoutes = require('./routes/reactions');
@@ -21,6 +22,7 @@ app.use(morgan('dev'));
 app.use(rateLimit({ windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000, max: Number(process.env.RATE_LIMIT_MAX) || 100 }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/boards', boardRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/posts/:id/comments', commentRoutes);
 app.use('/api/posts/:id/reactions', reactionRoutes);

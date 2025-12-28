@@ -8,10 +8,12 @@ import { PostsComponent } from './features/posts/posts.component';
 import { PostDetailComponent } from './features/posts/post-detail.component';
 import { PostFormComponent } from './features/posts/post-form.component';
 import { ProfileComponent } from './features/profile/profile.component';
+import { BoardsComponent } from './features/boards/boards.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent },
+  { path: 'boards', component: BoardsComponent },
   { path: 'posts', component: PostsComponent },
   { path: 'posts/new', canActivate: [AuthGuard], component: PostFormComponent },
   { path: 'posts/:id', component: PostDetailComponent },
