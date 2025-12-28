@@ -23,7 +23,7 @@ app.use(rateLimit({ windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
 
 app.use('/api/auth', authRoutes);
 app.use('/api/boards', boardRoutes);
-app.use('/api/posts', postRoutes);
+app.use('/api', postRoutes); // posts routes are nested under /boards/:slug
 app.use('/api/posts/:id/comments', commentRoutes);
 app.use('/api/posts/:id/reactions', reactionRoutes);
 app.use('/api/users', userRoutes);

@@ -1,6 +1,8 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
+import { BoardService, Board } from '../../core/services/board.service';
 
 @Component({
   selector: 'app-posts',
@@ -9,21 +11,32 @@ import { ApiService } from '../../core/services/api.service';
 export class PostsComponent implements OnInit {
   posts: any[] = [];
   loading = false;
+  board?: Board;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private route: ActivatedRoute, private router: Router, private boards: BoardService) {}
 
-  ngOnInit(): void {
-    this.load();
+  async ngOnInit(): Promise<void> {
+    await this.load();
   }
 
   async load(page = 1) {
     this.loading = true;
     try {
-      const res = await firstValueFrom(this.api.getPosts({ page }));
-      this.posts = res?.data || [];
+      const slug = this.route.snapshot.paramMap.get('slug');
+      if (!slug) {
+        this.router.navigate(['/boards']);
+        return;
+      }
+      const boardList = await firstValueFrom(this.boards.getBoards());
+      this.board = boardList.find(b => b.slug === slug) || boardList[0];
+      if (!this.board) throw new Error('게시판을 찾을 수 없습니다.');
+      const res: any = await firstValueFrom(this.api.getPosts({ page, boardSlug: slug }));
+      this.posts = res?.data || res?.posts || res?.data || [];
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err);
     } finally {
       this.loading = false;
     }
   }
 }
-

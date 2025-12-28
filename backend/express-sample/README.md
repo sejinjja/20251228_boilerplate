@@ -1,36 +1,26 @@
 # Express Sample (포트 8080)
 
-게시판 API 서버를 Express로 구현할 때 참고할 최소 구성 예시입니다. JS 기준이며, 필요 시 TS로 전환 가능합니다.
+게시판 API 서버 예시입니다. SQLite를 사용하며 게시판(boards)과 게시글(posts)이 보드 슬러그/ID로 연결됩니다. JWT 인증과 관리자 역할을 지원합니다.
 
 ## 요구사항 요약
-- 기본 포트: 8080 (`PORT`로만 변경)
-- JWT 인증: access(짧게) + refresh(길게) 발급, `Authorization: Bearer` 헤더 검증
-- 로그인 필수: 글/댓글 작성·수정·삭제, 반응 추가/삭제
-- 권한: 작성자 또는 관리자만 수정/삭제 가능, 소프트 삭제 지원
-- 페이지네이션: 기본 10, 최대 50
-- 입력 제약: 제목<=120, 본문<=10,000, 태그<=5(각 20자)
+- 기본 포트: 8080 (`PORT` 환경변수로만 변경)
+- 인증: JWT access/refresh, `Authorization: Bearer <token>`
+- 게시판: slug 고유, type(free|notice|trade), 관리자만 보드 생성
+- 게시글: 항상 특정 보드에 속함(boardId 필수), 공지 보드는 관리자만 작성/수정/삭제
+- 게시기간: publishStart/publishEnd 범위 밖 글은 작성자/관리자만 조회 가능
 
 ## 빠른 시작
 ```bash
-npm init -y
-npm install express cors helmet morgan dotenv jsonwebtoken bcrypt cookie-parser express-rate-limit
-npm install -D nodemon
+npm install
+npm run dev   # nodemon
+# 또는
+npm run start
 ```
 
-package.json 예시:
-```json
-{
-  "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
-  }
-}
-```
-
-.env 예시:
+`.env` 예시:
 ```
 PORT=8080
-DATABASE_URL=postgres://user:pass@localhost:5432/forum
+DATABASE_FILE=./data/forum.sqlite
 JWT_SECRET=change-me
 JWT_EXPIRES_IN=30m
 REFRESH_TOKEN_EXPIRES_IN=7d
@@ -40,93 +30,63 @@ RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX=100
 ```
 
-## 디렉터리 구조 예시
+## 주요 엔드포인트 (보드 중심)
+- 보드
+  - GET `/api/boards` (공개) 보드 목록
+  - POST `/api/boards` (관리자) {name, slug, type=free|notice|trade, isDefault?}
+- 게시글 (항상 보드 slug 포함)
+  - GET `/api/boards/:slug/posts` 쿼리: page, pageSize
+  - GET `/api/boards/:slug/posts/:id`
+  - POST `/api/boards/:slug/posts` (로그인, 공지는 관리자만)
+  - PUT `/api/boards/:slug/posts/:id` (작성자/관리자, 공지는 관리자만)
+  - DELETE `/api/boards/:slug/posts/:id` (작성자/관리자, 공지는 관리자만, soft delete)
+- 인증
+  - POST `/api/auth/signup`
+  - POST `/api/auth/login` -> accessToken, refreshToken
+  - POST `/api/auth/refresh`
+- 사용자
+  - GET `/api/users/me`, PATCH `/api/users/me`
+- 댓글/반응 (추후 보드 경로와 일관화 권장)
+  - `/api/posts/:id/comments`, `/api/posts/:id/reactions`
+
+## 디렉터리 구조
 ```
-express-sample/
+backend/express-sample/
   src/
-    index.js        # 앱 부트스트랩, 미들웨어 등록
+    index.js
     routes/
       auth.js
+      boards.js
       posts.js
       comments.js
       reactions.js
       users.js
+    repositories/
+      db.js
+      boards.js
+      posts.js
     middleware/
-      auth.js       # JWT 검증, req.user 주입
-      error.js      # 공통 에러 핸들링
-    services/       # 비즈니스 로직
-    repositories/   # DB 접근 (예: Prisma/Knex/ORM)
+      auth.js
+      error.js
+    services/
+      (비즈니스 로직 추가 시 분리)
 ```
 
-## 최소 부트스트랩 예시 (src/index.js)
-```js
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-const authRoutes = require('./routes/auth');
-const postRoutes = require('./routes/posts');
-const commentRoutes = require('./routes/comments');
-const reactionRoutes = require('./routes/reactions');
-const userRoutes = require('./routes/users');
-const errorHandler = require('./middleware/error');
+## 인증/권한
+- JWT 시크릿: `JWT_SECRET` (없으면 dev 기본값 사용). access 짧게, refresh 길게.
+- 공지(notice) 보드는 관리자만 작성/수정/삭제.
+- 게시기간 밖 글은 작성자/관리자만 조회 가능.
+- 삭제는 soft delete(`deletedAt`).
 
-const app = express();
-const PORT = process.env.PORT || 8080;
+## 입력 제약
+- 제목 ≤120, 본문 10~10,000, 태그 ≤5개(각 20자), 게시기간 ISO datetime.
+- 페이지네이션: pageSize 기본 10, 최대 50.
 
-app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000', credentials: true }));
-app.use(express.json({ limit: '1mb' }));
-app.use(morgan('dev'));
-app.use(rateLimit({ windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000, max: Number(process.env.RATE_LIMIT_MAX) || 100 }));
+## 로컬 DB
+- SQLite 파일: `./data/forum.sqlite` (ENV로 경로 변경 가능)
+- 기본 보드 자동 생성: 자유(free), 공지(notice), 중고거래(trade).
 
-app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/posts/:id/comments', commentRoutes);
-app.use('/api/posts/:id/reactions', reactionRoutes);
-app.use('/api/users', userRoutes);
-
-app.get('/health', (req, res) => res.json({ ok: true }));
-app.use(errorHandler);
-
-app.listen(PORT, () => console.log(`API server running on ${PORT}`));
-```
-
-## 인증 미들웨어 예시 (src/middleware/auth.js)
-```js
-const jwt = require('jsonwebtoken');
-
-module.exports = (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: { code: 'UNAUTHENTICATED' } });
-  const token = auth.slice(7);
-  try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
-    return next();
-  } catch (err) {
-    return res.status(401).json({ error: { code: 'TOKEN_INVALID_OR_EXPIRED' } });
-  }
-};
-```
-
-## 라우트 스케치
-- `POST /api/auth/signup` 이메일+비밀번호 해시 저장, 중복 체크
-- `POST /api/auth/login` bcrypt 비교 후 access/refresh 발급
-- `POST /api/auth/refresh` refresh 검증 후 새 access 발급
-- `GET /api/users/me` 인증 필요, 내 정보 반환
-- `PATCH /api/users/me` 프로필/비밀번호 변경
-- `GET /api/posts` 공개, 검색/정렬/페이지네이션 적용
-- `POST /api/posts` 인증, 제목/본문/태그 검증 후 생성
-- `PUT/DELETE /api/posts/:id` 작성자/관리자만, 소프트 삭제
-- `GET/POST /api/posts/:id/comments` 댓글 목록/작성
-- `PUT/DELETE /api/comments/:id` 작성자/관리자만
-- `POST/DELETE /api/posts/:id/reactions` 좋아요/싫어요 중복 방지
-
-## 테스트 추천 시나리오
-- 로그인/토큰 만료/리프레시 흐름
-- 권한 경계: 작성자 vs 타인 vs 관리자
-- 검증 오류: 제목/본문/태그 제한
-- 페이지네이션/정렬 응답 형식
-- Rate limit 및 CORS 동작
+## 품질 체크
+- CORS origin 제한, rate limit 설정 확인.
+- 에러 포맷: `{ "error": { "code": "...", "message": "..." } }` 사용.
+- 테스트: 로그인/리프레시, 보드 생성(관리자), 보드별 게시글 CRUD, 게시기간/권한 경계, 401/403/404 응답 확인.

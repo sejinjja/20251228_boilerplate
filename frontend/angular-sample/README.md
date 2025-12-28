@@ -1,6 +1,6 @@
 # Angular Sample (포트 3000)
 
-게시판 클라이언트를 Angular로 구현할 때 참고할 최소 구성 예시입니다.
+게시판 클라이언트를 Angular로 구현할 때 참고할 최소 구성 예시입니다. 현재 보드(slug) 기반 라우팅을 사용합니다.
 
 ## 요구사항 요약
 - 기본 포트: 3000 (`ng serve --port 3000`)
@@ -27,6 +27,16 @@ export const environment = {
 };
 ```
 
+## 라우팅/화면 구조
+```
+/boards                  # 보드 목록 + 관리자 보드 생성
+/boards/:slug/posts      # 보드별 글 목록
+/boards/:slug/posts/:id  # 상세
+/boards/:slug/posts/new  # 작성 (로그인)
+/boards/:slug/posts/:id/edit # 수정 (작성자/관리자)
+/login, /signup, /profile
+```
+
 ## 추천 모듈/폴더 구조
 ```
 src/app/
@@ -35,12 +45,14 @@ src/app/
     guards/auth.guard.ts
     services/auth.service.ts
     services/api.service.ts
+    services/board.service.ts
   features/
-    auth/ (login/signup pages)
-    posts/ (list/detail/new/edit)
+    boards/
+    auth/
+    posts/
     profile/
   shared/
-    components/ (layout, pagination, tag pills)
+    components/
     validators/
 ```
 
@@ -79,30 +91,33 @@ export class AuthInterceptor implements HttpInterceptor {
 ## 라우트 예시 (`app-routing.module.ts`)
 ```ts
 const routes: Routes = [
-  { path: 'login', loadChildren: () => import('./features/auth/login.module').then(m => m.LoginModule) },
-  { path: 'signup', loadChildren: () => import('./features/auth/signup.module').then(m => m.SignupModule) },
-  { path: 'posts', loadChildren: () => import('./features/posts/posts.module').then(m => m.PostsModule) },
-  { path: 'posts/:id', loadChildren: () => import('./features/posts/detail.module').then(m => m.DetailModule) },
-  { path: 'posts/:id/edit', canActivate: [AuthGuard], loadChildren: () => import('./features/posts/edit.module').then(m => m.EditModule) },
-  { path: 'posts/new', canActivate: [AuthGuard], loadChildren: () => import('./features/posts/new.module').then(m => m.NewModule) },
-  { path: 'profile', canActivate: [AuthGuard], loadChildren: () => import('./features/profile/profile.module').then(m => m.ProfileModule) },
-  { path: '', pathMatch: 'full', redirectTo: 'posts' }
+  { path: 'login', component: LoginComponent },
+  { path: 'signup', component: SignupComponent },
+  { path: 'boards', component: BoardsComponent },
+  { path: 'boards/:slug/posts', component: PostsComponent },
+  { path: 'boards/:slug/posts/new', canActivate: [AuthGuard], component: PostFormComponent },
+  { path: 'boards/:slug/posts/:id', component: PostDetailComponent },
+  { path: 'boards/:slug/posts/:id/edit', canActivate: [AuthGuard], component: PostFormComponent },
+  { path: 'profile', canActivate: [AuthGuard], component: ProfileComponent },
+  { path: '', pathMatch: 'full', component: HomeComponent },
+  { path: '**', redirectTo: '' }
 ];
 ```
 
-## 폼 검증 체크
+## 입력 검증 체크
 - 제목 required, max 120
 - 본문 required, min 10, max 10,000
 - 태그 최대 5개, 각 20자, 중복 방지
-- 서버 검증 에러는 필드별 메시지로 매핑
+- 게시판(boardId) 선택 필수, 게시기간 형식 검증
 
 ## UX 포인트
-- 목록: 페이지네이션(기본 10, 최대 50), 검색/태그 필터, 최신순 기본, 인기순 옵션
-- 상세: 좋아요/싫어요 상태 반영, 댓글 CRUD(작성자/관리자 권한)
-- 에러/로딩: 전역 로딩 인디케이터, 토스트/스낵바로 안내, 401/권한 부족 시 리다이렉트 및 메시지
+- 보드 선택/슬러그 기반 라우팅으로 항상 게시판 컨텍스트 유지
+- 목록: 페이지네이션, 검색/필터 확장 여지
+- 상세: 게시판 정보 표시, 댓글/반응(추가 시) UI 연동
+- 에러/로딩: 전역 로딩, 권한/기간 제한 시 안내 (401/403/404)
 
 ## 테스트 제안
 - 인터셉터 토큰 주입/만료 후 리프레시
 - AuthGuard 라우팅 차단/허용
-- 게시글/댓글 CRUD 흐름, 검증 실패 케이스
-- 페이지네이션/검색/정렬 쿼리 동작
+- 보드별 게시글 CRUD(권한/기간 포함), 검증 실패 케이스
+- 게시판 생성(관리자), 보드 slug 잘못된 경우 404

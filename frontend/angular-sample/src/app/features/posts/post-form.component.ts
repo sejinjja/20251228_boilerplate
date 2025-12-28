@@ -13,6 +13,7 @@ export class PostFormComponent implements OnInit {
   loading = false;
   error?: string;
   id = this.route.snapshot.paramMap.get('id');
+  slug = this.route.snapshot.paramMap.get('slug');
   boards: Board[] = [];
   form = this.fb.group({
     boardId: [null as number | null, [Validators.required]],
@@ -38,15 +39,17 @@ export class PostFormComponent implements OnInit {
     this.loading = true;
     try {
       this.boards = (await firstValueFrom(this.boardsService.getBoards())) || [];
+      const currentBoard = this.boards.find(b => b.slug === this.slug);
+      if (currentBoard) this.form.patchValue({ boardId: currentBoard.id });
     } catch (err: any) {
-      this.error = err?.message || '°Ô½ÃÆÇ ¸ñ·ÏÀ» ºÒ·¯¿Ã ¼ö ¾ø½À´Ï´Ù.';
+      this.error = err?.message || 'ê²Œì‹œíŒ ëª©ë¡ì„ ë¶ˆëŸ¬ì˜¬ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.';
     } finally {
       this.loading = false;
     }
   }
 
   async submit() {
-    if (this.form.invalid) {
+    if (this.form.invalid || !this.slug) {
       this.form.markAllAsTouched();
       return;
     }
@@ -55,19 +58,19 @@ export class PostFormComponent implements OnInit {
     try {
       const payload = {
         ...this.form.value,
-        boardId: this.form.value.boardId,
         tags: this.form.value.tags?.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5),
         publishStart: this.form.value.publishStart || null,
-        publishEnd: this.form.value.publishEnd || null
+        publishEnd: this.form.value.publishEnd || null,
+        boardSlug: this.slug
       };
       if (this.id) {
-        await firstValueFrom(this.api.updatePost(this.id, payload));
+        await firstValueFrom(this.api.updatePost(this.slug, this.id, payload));
       } else {
         await firstValueFrom(this.api.createPost(payload));
       }
-      await this.router.navigate(['/posts']);
+      await this.router.navigate(['/boards', this.slug, 'posts']);
     } catch (err: any) {
-      this.error = err?.message || 'ÀúÀå ½ÇÆÐ';
+      this.error = err?.message || 'ì €ìž¥ ì‹¤íŒ¨';
     } finally {
       this.loading = false;
     }

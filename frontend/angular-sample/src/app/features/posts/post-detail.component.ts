@@ -1,5 +1,5 @@
-﻿import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 
@@ -11,21 +11,24 @@ export class PostDetailComponent implements OnInit {
   post: any;
   loading = false;
 
-  constructor(private route: ActivatedRoute, private api: ApiService) {}
+  constructor(private route: ActivatedRoute, private router: Router, private api: ApiService) {}
 
-  ngOnInit(): void {
-    this.load();
+  async ngOnInit(): Promise<void> {
+    await this.load();
   }
 
   async load() {
     this.loading = true;
     const id = this.route.snapshot.paramMap.get('id');
-    if (!id) return;
+    const slug = this.route.snapshot.paramMap.get('slug');
+    if (!id || !slug) {
+      this.router.navigate(['/boards']);
+      return;
+    }
     try {
-      this.post = await firstValueFrom(this.api.getPost(id));
+      this.post = await firstValueFrom(this.api.getPostByBoard(slug, id));
     } finally {
       this.loading = false;
     }
   }
 }
-

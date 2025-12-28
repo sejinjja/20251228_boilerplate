@@ -1,4 +1,4 @@
-﻿import { NgModule } from '@angular/core';
+import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { HomeComponent } from './features/home/home.component';
@@ -14,10 +14,10 @@ const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent },
   { path: 'boards', component: BoardsComponent },
-  { path: 'posts', component: PostsComponent },
-  { path: 'posts/new', canActivate: [AuthGuard], component: PostFormComponent },
-  { path: 'posts/:id', component: PostDetailComponent },
-  { path: 'posts/:id/edit', canActivate: [AuthGuard], component: PostFormComponent },
+  { path: 'boards/:slug/posts', component: PostsComponent },
+  { path: 'boards/:slug/posts/new', canActivate: [AuthGuard], component: PostFormComponent },
+  { path: 'boards/:slug/posts/:id', component: PostDetailComponent },
+  { path: 'boards/:slug/posts/:id/edit', canActivate: [AuthGuard], component: PostFormComponent },
   { path: 'profile', canActivate: [AuthGuard], component: ProfileComponent },
   { path: '', pathMatch: 'full', component: HomeComponent },
   { path: '**', redirectTo: '' }
@@ -28,4 +28,3 @@ const routes: Routes = [
   exports: [RouterModule]
 })
 export class AppRoutingModule {}
-
