@@ -19,9 +19,15 @@ export class PostFormComponent {
   });
 
   constructor(private fb: FormBuilder, private api: ApiService, private router: Router, private route: ActivatedRoute) {}
+  get f() {
+    return this.form.controls;
+  }
 
   async submit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.loading = true;
     this.error = undefined;
     try {

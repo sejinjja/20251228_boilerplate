@@ -1,7 +1,16 @@
 ﻿<h2>{{ id ? '글 수정' : '글 작성' }}</h2>
 <form [formGroup]="form" (ngSubmit)="submit()">
   <label>제목 <input formControlName="title" /></label>
+  <div class="hint" *ngIf="f.title.touched && f.title.invalid">
+    <span *ngIf="f.title.errors?.['required']">제목을 입력하세요.</span>
+    <span *ngIf="f.title.errors?.['maxlength']">제목은 최대 {{ f.title.errors?.['maxlength'].requiredLength }}자까지 가능합니다.</span>
+  </div>
   <label>본문 <textarea formControlName="content"></textarea></label>
+  <div class="hint" *ngIf="f.content.touched && f.content.invalid">
+    <span *ngIf="f.content.errors?.['required']">본문을 입력하세요.</span>
+    <span *ngIf="f.content.errors?.['minlength']">본문은 최소 {{ f.content.errors?.['minlength'].requiredLength }}자 이상이어야 합니다.</span>
+    <span *ngIf="f.content.errors?.['maxlength']">본문은 최대 {{ f.content.errors?.['maxlength'].requiredLength }}자까지 가능합니다.</span>
+  </div>
   <label>태그(콤마 구분, 최대 5개) <input formControlName="tags" /></label>
   <button type="submit" [disabled]="loading">저장</button>
   <div *ngIf="error" class="error">{{ error }}</div>

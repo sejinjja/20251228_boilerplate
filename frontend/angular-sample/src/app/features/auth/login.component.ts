@@ -16,9 +16,15 @@ export class LoginComponent {
   });
 
   constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {}
+  get f() {
+    return this.form.controls;
+  }
 
   async submit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.loading = true;
     this.error = undefined;
     try {
