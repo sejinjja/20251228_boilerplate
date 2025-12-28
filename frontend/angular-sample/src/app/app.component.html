@@ -1,15 +1,20 @@
 <header class="app-header">
-  <h1>{{ title }}</h1>
+  <div class="brand">
+    <span>◎</span>
+    <div>{{ title }}</div>
+  </div>
   <nav>
-    <a [routerLink]="postsLink" routerLinkActive="active">My Space</a>
-    <a [routerLink]="newPostLink" routerLinkActive="active">Write</a>
-    <a routerLink="/spaces" routerLinkActive="active">Spaces</a>
-    <a routerLink="/profile" routerLinkActive="active">Profile</a>
-    <a routerLink="/login" routerLinkActive="active">Login</a>
-    <a routerLink="/signup" routerLinkActive="active">Sign Up</a>
+    <a [routerLink]="postsLink" routerLinkActive="active">내 글</a>
+    <a [routerLink]="newPostLink" routerLinkActive="active">글쓰기</a>
+    <a routerLink="/spaces" routerLinkActive="active">공간</a>
+    <a routerLink="/profile" routerLinkActive="active">프로필</a>
+    <a routerLink="/login" routerLinkActive="active">로그인</a>
+    <a routerLink="/signup" routerLinkActive="active">가입</a>
   </nav>
 </header>
 <main>
-  <router-outlet></router-outlet>
+  <div class="page">
+    <router-outlet></router-outlet>
+  </div>
 </main>
 

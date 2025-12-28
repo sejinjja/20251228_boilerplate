@@ -33,8 +33,8 @@ export class AuthService {
     this.setSession(res.accessToken, res.refreshToken, res.user);
   }
 
-  async signup(email: string, password: string, displayName: string, username: string) {
-    await firstValueFrom(this.http.post(`${environment.apiBaseUrl}/api/auth/signup`, { email, password, displayName, username }));
+  async signup(email: string, password: string, username: string) {
+    await firstValueFrom(this.http.post(`${environment.apiBaseUrl}/api/auth/signup`, { email, password, username }));
   }
 
   logout() {

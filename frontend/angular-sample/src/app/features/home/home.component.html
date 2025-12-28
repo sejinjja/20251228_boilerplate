@@ -1,5 +1,21 @@
-<section>
-  <h2>Welcome to your space</h2>
-  <p>Sign up to claim your own &#64;id and publish posts in it.</p>
-  <a [routerLink]="postsLink">Go to posts</a>
+<section class="panel">
+  <div class="header-row">
+    <div>
+      <p class="pill">피드</p>
+      <h2>새로 올라온 글</h2>
+      <p class="muted">모든 공간의 최신 글을 확인하세요.</p>
+    </div>
+    <a class="btn" routerLink="/spaces">공간 둘러보기</a>
+  </div>
+  <div *ngIf="loading" class="muted">피드를 불러오는 중...</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+  <ul class="list">
+    <li *ngFor="let post of posts">
+      <div>
+        <a [routerLink]="['/spaces', post.space?.username, 'posts', post.id]">{{ post.title }}</a>
+        <div class="muted">&#64;{{ post.space?.username }} · {{ post.author?.username }}</div>
+      </div>
+      <a class="btn" [routerLink]="['/spaces', post.space?.username, 'posts', post.id]">열기</a>
+    </li>
+  </ul>
 </section>

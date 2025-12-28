@@ -20,13 +20,14 @@ export class PostDetailComponent implements OnInit {
   async load() {
     this.loading = true;
     const id = this.route.snapshot.paramMap.get('id');
-    const slug = this.route.snapshot.paramMap.get('slug');
-    if (!id || !slug) {
+    const username = this.route.snapshot.paramMap.get('username');
+    if (!id || !username) {
       this.router.navigate(['/spaces']);
       return;
     }
     try {
-      this.post = await firstValueFrom(this.api.getPost(slug, id));
+      const res: any = await firstValueFrom(this.api.getPost(username, id));
+      this.post = res?.post || res;
     } finally {
       this.loading = false;
     }

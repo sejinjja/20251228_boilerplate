@@ -30,7 +30,7 @@ export class PostFormComponent implements OnInit {
     this.loading = true;
     try {
       this.id = this.route.snapshot.paramMap.get('id');
-      this.spaceSlug = this.route.snapshot.paramMap.get('slug');
+      this.spaceSlug = this.route.snapshot.paramMap.get('username');
       if (!this.spaceSlug) {
         await this.router.navigate(['/spaces']);
         return;

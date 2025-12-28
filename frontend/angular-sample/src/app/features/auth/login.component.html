@@ -1,16 +1,18 @@
-<h2>Login</h2>
-<form [formGroup]="form" (ngSubmit)="submit()">
-  <label>Email <input formControlName="email" type="email" /></label>
-  <div class="hint" *ngIf="f.email.touched && f.email.invalid">
-    <span *ngIf="f.email.errors?.['required']">이메일을 입력하세요.</span>
-    <span *ngIf="f.email.errors?.['email']">올바른 이메일 형식이 아닙니다.</span>
-  </div>
-  <label>Password <input formControlName="password" type="password" /></label>
-  <div class="hint" *ngIf="f.password.touched && f.password.invalid">
-    <span *ngIf="f.password.errors?.['required']">비밀번호를 입력하세요.</span>
-  </div>
-  <button type="submit" [disabled]="loading">로그인</button>
-  <div *ngIf="error" class="error">{{ error }}</div>
-</form>
-<p>아직 계정이 없다면? <a routerLink="/signup">회원가입</a></p>
-
+<div class="panel">
+  <h2>로그인</h2>
+  <p class="muted">이메일과 비밀번호로 로그인하세요.</p>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label>이메일 <input formControlName="email" type="email" /></label>
+    <div class="hint" *ngIf="f.email.touched && f.email.invalid">
+      <span *ngIf="f.email.errors?.['required']">이메일을 입력하세요.</span>
+      <span *ngIf="f.email.errors?.['email']">올바른 이메일 형식이어야 합니다.</span>
+    </div>
+    <label>비밀번호 <input formControlName="password" type="password" /></label>
+    <div class="hint" *ngIf="f.password.touched && f.password.invalid">
+      <span *ngIf="f.password.errors?.['required']">비밀번호를 입력하세요.</span>
+    </div>
+    <button class="btn" type="submit" [disabled]="loading">로그인</button>
+    <div *ngIf="error" class="error">{{ error }}</div>
+  </form>
+  <p class="muted">계정이 없다면? <a routerLink="/signup">회원가입</a></p>
+</div>

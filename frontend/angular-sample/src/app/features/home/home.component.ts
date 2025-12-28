@@ -1,32 +1,38 @@
 import { Component, OnInit } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { AuthService } from '../../core/services/auth.service';
-import { SpaceService } from '../../core/services/space.service';
+import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html'
 })
 export class HomeComponent implements OnInit {
-  postsLink: string | any[] = '/spaces';
+  posts: any[] = [];
+  loading = false;
+  error?: string;
 
-  constructor(private auth: AuthService, private spaces: SpaceService) {}
+  constructor(private api: ApiService) {}
 
   async ngOnInit(): Promise<void> {
-    this.auth.user$.subscribe(async user => {
-      if (user?.spaceSlug) {
-        this.postsLink = ['/spaces', user.spaceSlug, 'posts'];
-      } else if (user) {
-        try {
-          const space = await firstValueFrom(this.spaces.ensureMySpace());
-          this.postsLink = ['/spaces', space.slug, 'posts'];
-        } catch {
-          this.postsLink = '/spaces';
-        }
-      } else {
-        this.postsLink = '/spaces';
-      }
-    });
+    this.loading = true;
+    try {
+      const res: any = await firstValueFrom(this.api.getAllPosts());
+      this.posts = (res?.data || res?.posts || []).map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        content: p.content,
+        tags: p.tags,
+        author: p.author || { id: p.authorId, username: p.authorUsername },
+        space: p.space || { id: p.spaceId, username: p.spaceUsername },
+        isPublished: p.isPublished,
+        publishedAt: p.publishedAt,
+        createdAt: p.createdAt
+      }));
+    } catch (err: any) {
+      this.error = err?.message || '피드를 불러오지 못했습니다.';
+    } finally {
+      this.loading = false;
+    }
   }
 }
 

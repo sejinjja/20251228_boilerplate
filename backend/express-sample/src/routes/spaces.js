@@ -7,18 +7,18 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
   try {
     const spaces = await spacesRepo.list();
-    return res.json(spaces);
+    return res.json(spaces.map(s => ({ id: s.id, ownerId: s.ownerId, username: s.username, createdAt: s.createdAt, updatedAt: s.updatedAt })));
   } catch (err) {
     next(err);
   }
 });
 
 // public: get single space
-router.get('/:slug', async (req, res, next) => {
+router.get('/:username', async (req, res, next) => {
   try {
-    const space = await spacesRepo.findBySlug(req.params.slug);
+    const space = await spacesRepo.findByUsername(req.params.username);
     if (!space) return res.status(404).json({ error: { code: 'NOT_FOUND' } });
-    return res.json(space);
+    return res.json({ id: space.id, ownerId: space.ownerId, username: space.username, createdAt: space.createdAt, updatedAt: space.updatedAt });
   } catch (err) {
     next(err);
   }
@@ -27,33 +27,8 @@ router.get('/:slug', async (req, res, next) => {
 // auth: create/claim space for current user (idempotent)
 router.post('/', auth, async (req, res, next) => {
   try {
-    const space = await spacesRepo.ensureForUser({
-      email: req.user.sub,
-      username: req.user.username,
-      displayName: req.user.displayName,
-      desiredSlug: req.body.slug,
-      title: req.body.title,
-      bio: req.body.bio
-    });
-    return res.status(201).json(space);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// auth: update own space
-router.patch('/:slug', auth, async (req, res, next) => {
-  try {
-    const space = await spacesRepo.findBySlug(req.params.slug);
-    if (!space) return res.status(404).json({ error: { code: 'NOT_FOUND' } });
-    if (space.ownerEmail !== req.user.sub && req.user.role !== 'admin') {
-      return res.status(403).json({ error: { code: 'FORBIDDEN' } });
-    }
-    const updated = await spacesRepo.update(space.slug, {
-      title: req.body.title || space.title,
-      bio: req.body.bio ?? space.bio
-    });
-    return res.json(updated);
+    const space = await spacesRepo.ensureForUser({ ownerId: req.user.userId });
+    return res.status(201).json({ id: space.id, ownerId: space.ownerId, username: space.username, createdAt: space.createdAt, updatedAt: space.updatedAt });
   } catch (err) {
     next(err);
   }

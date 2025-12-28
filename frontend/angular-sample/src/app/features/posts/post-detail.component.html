@@ -1,7 +1,11 @@
-<div *ngIf="loading">Loading...</div>
-<section *ngIf="post">
-  <h2>{{ post.title }}</h2>
+<div *ngIf="loading" class="muted">불러오는 중...</div>
+<section *ngIf="post" class="panel">
+  <div class="header-row">
+    <div>
+      <p class="pill">&#64;{{ post.space?.username }}</p>
+      <h2>{{ post.title }}</h2>
+      <p class="muted">{{ post.author?.username }}</p>
+    </div>
+  </div>
   <p>{{ post.content }}</p>
-  <div><small>&#64;{{ post.spaceSlug }}</small></div>
-  <small>by {{ post.authorUsername || post.author }}</small>
 </section>

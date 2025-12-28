@@ -30,7 +30,7 @@ export class LoginComponent {
     try {
       await this.auth.login(this.form.value.email!, this.form.value.password!);
       const user = this.auth.getCurrentUser();
-      const target = user?.spaceSlug ? ['/spaces', user.spaceSlug, 'posts'] : ['/spaces'];
+      const target = user?.space?.username ? ['/spaces', user.space.username, 'posts'] : ['/spaces'];
       await this.router.navigate(target);
     } catch (err: any) {
       this.error = err?.message || '로그인 실패';

@@ -1,9 +1,20 @@
-<h2>{{ space?.title || ('@' + space?.slug) || 'Posts' }}</h2>
-<div *ngIf="loading">Loading...</div>
-<ul>
-  <li *ngFor="let post of posts">
-    <a [routerLink]="['/spaces', space?.slug, 'posts', post.id]">{{ post.title }}</a>
-    <span>by {{ post.authorUsername || post.author }}</span>
-  </li>
-</ul>
-<a [routerLink]="['/spaces', space?.slug, 'posts', 'new']">새 글 쓰기</a>
+<section class="panel">
+  <div class="header-row">
+    <div>
+      <p class="pill">공간</p>
+      <h2>{{ '@' + (space?.username || '') || 'Posts' }}</h2>
+      <p class="muted">이 공간에 올라온 글입니다.</p>
+    </div>
+    <a class="btn" [routerLink]="['/spaces', space?.username, 'posts', 'new']">새 글 쓰기</a>
+  </div>
+  <div *ngIf="loading" class="muted">불러오는 중...</div>
+  <ul class="list">
+    <li *ngFor="let post of posts">
+      <div>
+        <a [routerLink]="['/spaces', space?.username, 'posts', post.id]">{{ post.title }}</a>
+        <div class="muted">{{ post.author?.username }}</div>
+      </div>
+      <a class="btn" [routerLink]="['/spaces', space?.username, 'posts', post.id]">보기</a>
+    </li>
+  </ul>
+</section>

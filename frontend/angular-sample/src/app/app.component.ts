@@ -10,18 +10,18 @@ import { SpaceService } from './core/services/space.service';
 })
 export class AppComponent implements OnInit {
   title = 'User Spaces';
-  mySpaceSlug?: string | null;
+  mySpaceUsername?: string | null;
   user$ = this.auth.user$;
 
   constructor(private auth: AuthService, private spaces: SpaceService) {}
 
   async ngOnInit(): Promise<void> {
     this.auth.user$.subscribe(async user => {
-      this.mySpaceSlug = user?.spaceSlug || null;
-      if (user && !user.spaceSlug) {
+      this.mySpaceUsername = user?.space?.username || user?.username || null;
+      if (user && !this.mySpaceUsername) {
         try {
           const space = await firstValueFrom(this.spaces.ensureMySpace());
-          this.mySpaceSlug = space.slug;
+          this.mySpaceUsername = space.username;
         } catch {
           // ignore
         }
@@ -30,10 +30,10 @@ export class AppComponent implements OnInit {
   }
 
   get postsLink() {
-    return this.mySpaceSlug ? ['/spaces', this.mySpaceSlug, 'posts'] : ['/spaces'];
+    return this.mySpaceUsername ? ['/spaces', this.mySpaceUsername, 'posts'] : ['/spaces'];
   }
 
   get newPostLink() {
-    return this.mySpaceSlug ? ['/spaces', this.mySpaceSlug, 'posts', 'new'] : ['/login'];
+    return this.mySpaceUsername ? ['/spaces', this.mySpaceUsername, 'posts', 'new'] : ['/login'];
   }
 }

@@ -22,15 +22,26 @@ export class PostsComponent implements OnInit {
   async load(page = 1) {
     this.loading = true;
     try {
-      const slugParam = this.route.snapshot.paramMap.get('slug');
-      if (!slugParam) {
+      const usernameParam = this.route.snapshot.paramMap.get('username');
+      if (!usernameParam) {
         await this.router.navigate(['/spaces']);
         return;
       }
-      this.space = await firstValueFrom(this.spaces.getSpace(slugParam));
-      const res: any = await firstValueFrom(this.api.getPosts({ page, spaceSlug: slugParam }));
+      this.space = await firstValueFrom(this.spaces.getSpace(usernameParam));
+      const res: any = await firstValueFrom(this.api.getPosts({ page, spaceUsername: usernameParam }));
       this.space = res?.space || this.space;
-      this.posts = res?.data || res?.posts || [];
+      this.posts = (res?.data || res?.posts || []).map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        content: p.content,
+        tags: p.tags,
+        author: p.author || { id: p.authorId, username: p.authorUsername },
+        space: p.space || { id: p.spaceId, username: this.space?.username || usernameParam },
+        isPublished: p.isPublished,
+        publishedAt: p.publishedAt,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt
+      }));
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);

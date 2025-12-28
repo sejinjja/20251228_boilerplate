@@ -1,19 +1,12 @@
 const db = require('./db');
 
-function slugify(text) {
-  return (text || '')
-    .toString()
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-{2,}/g, '-') || 'user';
-}
-
 function list() {
   return new Promise((resolve, reject) => {
     db.all(
-      'SELECT id, ownerUsername, slug, title, bio, createdAt, updatedAt FROM spaces ORDER BY createdAt DESC',
+      `SELECT s.id, s.ownerId, u.username as username, s.createdAt, s.updatedAt
+       FROM spaces s
+       JOIN users u ON u.id = s.ownerId
+       ORDER BY s.createdAt DESC`,
       (err, rows) => {
         if (err) return reject(err);
         resolve(rows || []);
@@ -22,23 +15,13 @@ function list() {
   });
 }
 
-function findBySlug(slug) {
+function findByUsername(username) {
   return new Promise((resolve, reject) => {
     db.get(
-      'SELECT id, ownerUsername, slug, title, bio, createdAt, updatedAt FROM spaces WHERE slug = ?',
-      [slug],
-      (err, row) => {
-        if (err) return reject(err);
-        resolve(row || null);
-      }
-    );
-  });
-}
-
-function findByOwnerUsername(username) {
-  return new Promise((resolve, reject) => {
-    db.get(
-      'SELECT id, ownerUsername, slug, title, bio, createdAt, updatedAt FROM spaces WHERE ownerUsername = ?',
+      `SELECT s.id, s.ownerId, u.username as username, s.createdAt, s.updatedAt
+       FROM spaces s
+       JOIN users u ON u.id = s.ownerId
+       WHERE u.username = ?`,
       [username],
       (err, row) => {
         if (err) return reject(err);
@@ -48,58 +31,36 @@ function findByOwnerUsername(username) {
   });
 }
 
-async function create({ ownerUsername, slug, title, bio = '' }) {
+function findByOwnerId(ownerId) {
   return new Promise((resolve, reject) => {
-    db.run(
-      'INSERT INTO spaces (ownerUsername, slug, title, bio) VALUES (?, ?, ?, ?)',
-      [ownerUsername, slug, title || slug, bio],
-      function (err) {
+    db.get(
+      `SELECT s.id, s.ownerId, u.username as username, s.createdAt, s.updatedAt
+       FROM spaces s
+       JOIN users u ON u.id = s.ownerId
+       WHERE s.ownerId = ?`,
+      [ownerId],
+      (err, row) => {
         if (err) return reject(err);
-        resolve({
-          id: this.lastID,
-          ownerUsername,
-          slug,
-          title: title || slug,
-          bio,
-          createdAt: new Date().toISOString()
-        });
+        resolve(row || null);
       }
     );
   });
 }
 
-async function ensureForUser({ username, displayName, desiredSlug, title, bio }) {
-  const existing = await findByOwnerUsername(username);
-  if (existing) {
-    if (title || bio) {
-      return update(existing.slug, { title: title || existing.title, bio: bio ?? existing.bio });
-    }
-    return existing;
-  }
-  const base = slugify(desiredSlug || username || displayName || 'user');
-  let candidate = base;
-  let suffix = 2;
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const taken = await findBySlug(candidate);
-    if (!taken) break;
-    candidate = `${base}-${suffix++}`;
-  }
-  return create({ ownerUsername: username, slug: candidate, title: displayName || candidate, bio });
-}
-
-async function update(slug, data) {
-  const { title, bio } = data;
+function create({ ownerId }) {
   return new Promise((resolve, reject) => {
-    db.run(
-      'UPDATE spaces SET title = ?, bio = ?, updatedAt = datetime(\'now\') WHERE slug = ?',
-      [title, bio, slug],
-      err => {
-        if (err) return reject(err);
-        findBySlug(slug).then(resolve).catch(reject);
-      }
-    );
+    db.run('INSERT INTO spaces (ownerId) VALUES (?)', [ownerId], function (err) {
+      if (err) return reject(err);
+      findByOwnerId(ownerId).then(resolve).catch(reject);
+    });
   });
 }
 
-module.exports = { list, findBySlug, findByOwnerUsername, ensureForUser, create, update, slugify };
+async function ensureForUser({ ownerId }) {
+  if (!ownerId) throw new Error('OWNER_REQUIRED');
+  const existing = await findByOwnerId(ownerId);
+  if (existing) return existing;
+  return create({ ownerId });
+}
+
+module.exports = { list, findByUsername, findByOwnerId, ensureForUser, create };
