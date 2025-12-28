@@ -12,7 +12,7 @@ import { PostDetailComponent } from './features/posts/post-detail.component';
 import { PostFormComponent } from './features/posts/post-form.component';
 import { ProfileComponent } from './features/profile/profile.component';
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
-import { BoardsComponent } from './features/boards/boards.component';
+import { SpacesComponent } from './features/spaces/spaces.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +24,7 @@ import { BoardsComponent } from './features/boards/boards.component';
     PostDetailComponent,
     PostFormComponent,
     ProfileComponent,
-    BoardsComponent
+    SpacesComponent
   ],
   imports: [BrowserModule, HttpClientModule, FormsModule, ReactiveFormsModule, AppRoutingModule],
   providers: [{ provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }],

@@ -1,22 +1,44 @@
 # Angular Sample (포트 3000)
 
-게시판 클라이언트를 Angular로 구현할 때 참고할 최소 구성 예시입니다. 현재 보드(slug) 기반 라우팅을 사용합니다.
+Velog 스타일 공간 기반 블로그의 Angular 프론트입니다. 각 사용자가 가진 `username`으로 공간이 생성되고, 그 공간에 게시글을 작성합니다.
 
-## 요구사항 요약
+## 요약
 - 기본 포트: 3000 (`ng serve --port 3000`)
 - 백엔드 기본: http://localhost:8080
-- JWT 인증: 로그인 후 토큰 저장(메모리+localStorage), 인터셉터로 헤더 주입, 만료 시 리프레시
-- 라우트 보호: 인증 가드로 보호 라우트 차단, 미인증 시 `/login`
+- JWT 인증: 로그인 시 access/refresh 토큰을 localStorage에 저장, 인터셉터가 자동 헤더/리프레시 처리
+- 보호 라우트: 토큰 없으면 `/login`으로 이동
 
-## 프로젝트 생성
-```bash
-npm install -g @angular/cli
-ng new angular-sample --routing --style=scss
-cd angular-sample
-npm install @auth0/angular-jwt
+## 라우팅 구조
+```
+/spaces                  # 공간 목록 + 내 공간 만들기
+/spaces/:slug/posts      # 해당 공간 게시글 목록
+/spaces/:slug/posts/:id  # 게시글 상세
+/spaces/:slug/posts/new  # 작성 (소유자/관리자)
+/spaces/:slug/posts/:id/edit # 수정
+/login, /signup, /profile
 ```
 
-## 환경 설정 (`src/environments/environment.ts`)
+## 주요 폴더
+```
+src/app/
+  core/
+    interceptors/auth.interceptor.ts
+    guards/auth.guard.ts
+    services/auth.service.ts
+    services/api.service.ts
+    services/space.service.ts
+  features/
+    spaces/
+    auth/
+    posts/
+    profile/
+```
+
+## 입력/검증
+- 회원가입: email, username(고유), displayName, password(6자 이상)
+- 글: 제목 ≤120자, 본문 10~10,000자, 태그 최대 5개, 발행/비발행 + 발행시각
+
+## 환경설정 (`src/environments/environment.ts`)
 ```ts
 export const environment = {
   production: false,
@@ -27,97 +49,12 @@ export const environment = {
 };
 ```
 
-## 라우팅/화면 구조
+## 인터셉터
+`core/interceptors/auth.interceptor.ts` 에서 Authorization 헤더 추가 및 401/419 시 자동 refresh 후 재시도.
+
+## 빌드/실행
+```bash
+npm install
+npm run start   # ng serve --port 3000
+npm run build
 ```
-/boards                  # 보드 목록 + 관리자 보드 생성
-/boards/:slug/posts      # 보드별 글 목록
-/boards/:slug/posts/:id  # 상세
-/boards/:slug/posts/new  # 작성 (로그인)
-/boards/:slug/posts/:id/edit # 수정 (작성자/관리자)
-/login, /signup, /profile
-```
-
-## 추천 모듈/폴더 구조
-```
-src/app/
-  core/
-    interceptors/auth.interceptor.ts
-    guards/auth.guard.ts
-    services/auth.service.ts
-    services/api.service.ts
-    services/board.service.ts
-  features/
-    boards/
-    auth/
-    posts/
-    profile/
-  shared/
-    components/
-    validators/
-```
-
-## 인터셉터 예시 (`core/interceptors/auth.interceptor.ts`)
-```ts
-import { Injectable } from '@angular/core';
-import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, switchMap, throwError } from 'rxjs';
-import { AuthService } from '../services/auth.service';
-
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  constructor(private auth: AuthService) {}
-
-  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const token = this.auth.getAccessToken();
-    const authReq = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
-    return next.handle(authReq).pipe(
-      catchError((err: HttpErrorResponse) => {
-        if (err.status === 401 || err.status === 419) {
-          return this.auth.refresh().pipe(
-            switchMap(newToken => {
-              if (!newToken) return throwError(() => err);
-              const retryReq = req.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } });
-              return next.handle(retryReq);
-            })
-          );
-        }
-        return throwError(() => err);
-      })
-    );
-  }
-}
-```
-
-## 라우트 예시 (`app-routing.module.ts`)
-```ts
-const routes: Routes = [
-  { path: 'login', component: LoginComponent },
-  { path: 'signup', component: SignupComponent },
-  { path: 'boards', component: BoardsComponent },
-  { path: 'boards/:slug/posts', component: PostsComponent },
-  { path: 'boards/:slug/posts/new', canActivate: [AuthGuard], component: PostFormComponent },
-  { path: 'boards/:slug/posts/:id', component: PostDetailComponent },
-  { path: 'boards/:slug/posts/:id/edit', canActivate: [AuthGuard], component: PostFormComponent },
-  { path: 'profile', canActivate: [AuthGuard], component: ProfileComponent },
-  { path: '', pathMatch: 'full', component: HomeComponent },
-  { path: '**', redirectTo: '' }
-];
-```
-
-## 입력 검증 체크
-- 제목 required, max 120
-- 본문 required, min 10, max 10,000
-- 태그 최대 5개, 각 20자, 중복 방지
-- 게시판(boardId) 선택 필수, 게시기간 형식 검증
-
-## UX 포인트
-- 보드 선택/슬러그 기반 라우팅으로 항상 게시판 컨텍스트 유지
-- 목록: 페이지네이션, 검색/필터 확장 여지
-- 상세: 게시판 정보 표시, 댓글/반응(추가 시) UI 연동
-- 에러/로딩: 전역 로딩, 권한/기간 제한 시 안내 (401/403/404)
-
-## 테스트 제안
-- 인터셉터 토큰 주입/만료 후 리프레시
-- AuthGuard 라우팅 차단/허용
-- 보드별 게시글 CRUD(권한/기간 포함), 검증 실패 케이스
-- 게시판 생성(관리자), 보드 slug 잘못된 경우 404

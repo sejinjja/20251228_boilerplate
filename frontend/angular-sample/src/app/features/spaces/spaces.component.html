@@ -1,0 +1,24 @@
+<h2>User Spaces</h2>
+<div *ngIf="loading">불러오는 중...</div>
+<ul>
+  <li *ngFor="let s of spaces">
+    <strong>{{ s.title || s.slug }}</strong>
+    <span>&#64;{{ s.slug }}</span>
+    <span class="hint">{{ s.bio }}</span>
+    <a [routerLink]="['/spaces', s.slug, 'posts']">글 보기</a>
+  </li>
+</ul>
+
+<div *ngIf="error" class="error">{{ error }}</div>
+
+<section *ngIf="(user$ | async)">
+  <h3>내 공간 만들기/수정하기</h3>
+  <form [formGroup]="form" (ngSubmit)="createOrClaim()">
+    <label>슬러그(고유 주소) <input formControlName="slug" placeholder="your-id" /></label>
+    <div class="hint" *ngIf="form.controls.slug.touched && form.controls.slug.invalid">주소를 입력하세요.</div>
+    <label>제목 <input formControlName="title" placeholder="블로그 제목" /></label>
+    <div class="hint" *ngIf="form.controls.title.touched && form.controls.title.invalid">제목을 입력하세요.</div>
+    <label>소개 <textarea formControlName="bio" placeholder="소개글"></textarea></label>
+    <button type="submit" [disabled]="saving">저장</button>
+  </form>
+</section>

@@ -24,13 +24,17 @@ export class AuthService {
     return this.accessToken;
   }
 
+  getCurrentUser() {
+    return this.userSubject.value;
+  }
+
   async login(email: string, password: string) {
     const res: any = await firstValueFrom(this.http.post(`${environment.apiBaseUrl}/api/auth/login`, { email, password }));
     this.setSession(res.accessToken, res.refreshToken, res.user);
   }
 
-  async signup(email: string, password: string, displayName: string) {
-    await firstValueFrom(this.http.post(`${environment.apiBaseUrl}/api/auth/signup`, { email, password, displayName }));
+  async signup(email: string, password: string, displayName: string, username: string) {
+    await firstValueFrom(this.http.post(`${environment.apiBaseUrl}/api/auth/signup`, { email, password, displayName, username }));
   }
 
   logout() {

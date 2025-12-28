@@ -12,6 +12,7 @@ export class SignupComponent {
   error?: string;
   form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
+    username: ['', [Validators.required]],
     displayName: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(6)]]
   });
@@ -29,7 +30,7 @@ export class SignupComponent {
     this.loading = true;
     this.error = undefined;
     try {
-      await this.auth.signup(this.form.value.email!, this.form.value.password!, this.form.value.displayName!);
+      await this.auth.signup(this.form.value.email!, this.form.value.password!, this.form.value.displayName!, this.form.value.username!);
       await this.router.navigate(['/login']);
     } catch (err: any) {
       this.error = err?.message || '회원가입 실패';

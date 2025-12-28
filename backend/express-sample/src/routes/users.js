@@ -3,7 +3,7 @@ const auth = require('../middleware/auth');
 const router = express.Router();
 
 router.get('/me', auth, (req, res) => {
-  return res.json({ user: { id: req.user.sub, role: req.user.role || 'user' } });
+  return res.json({ user: { id: req.user.sub, username: req.user.username, role: req.user.role || 'user' } });
 });
 
 router.patch('/me', auth, (req, res) => {

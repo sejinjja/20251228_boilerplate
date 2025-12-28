@@ -22,11 +22,11 @@ export class PostDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     const slug = this.route.snapshot.paramMap.get('slug');
     if (!id || !slug) {
-      this.router.navigate(['/boards']);
+      this.router.navigate(['/spaces']);
       return;
     }
     try {
-      this.post = await firstValueFrom(this.api.getPostByBoard(slug, id));
+      this.post = await firstValueFrom(this.api.getPost(slug, id));
     } finally {
       this.loading = false;
     }

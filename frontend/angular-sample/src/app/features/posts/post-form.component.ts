@@ -3,7 +3,6 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
-import { BoardService, Board } from '../../core/services/board.service';
 
 @Component({
   selector: 'app-post-form',
@@ -12,25 +11,17 @@ import { BoardService, Board } from '../../core/services/board.service';
 export class PostFormComponent implements OnInit {
   loading = false;
   error?: string;
-  boards: Board[] = [];
-  board?: Board;
+  spaceSlug?: string | null;
   id?: string | null;
   form = this.fb.group({
-    boardId: [null as number | null, [Validators.required]],
     title: ['', [Validators.required, Validators.maxLength(120)]],
     content: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(10000)]],
     tags: [''],
-    publishStart: [''],
-    publishEnd: ['']
+    isPublished: [true],
+    publishedAt: ['']
   });
 
-  constructor(
-    private fb: FormBuilder,
-    private api: ApiService,
-    private boardsService: BoardService,
-    private router: Router,
-    private route: ActivatedRoute
-  ) {}
+  constructor(private fb: FormBuilder, private api: ApiService, private router: Router, private route: ActivatedRoute) {}
   get f() {
     return this.form.controls;
   }
@@ -39,24 +30,20 @@ export class PostFormComponent implements OnInit {
     this.loading = true;
     try {
       this.id = this.route.snapshot.paramMap.get('id');
-      const slugParam = this.route.snapshot.paramMap.get('slug');
-      this.boards = (await firstValueFrom(this.boardsService.getBoards())) || [];
-      this.board = this.boards.find(b => b.slug === slugParam) || this.boards.find(b => b.isDefault) || this.boards[0];
-      if (!this.board) {
-        await this.router.navigate(['/boards']);
+      this.spaceSlug = this.route.snapshot.paramMap.get('slug');
+      if (!this.spaceSlug) {
+        await this.router.navigate(['/spaces']);
         return;
       }
-      this.form.patchValue({ boardId: this.board.id });
 
       if (this.id) {
-        const post = await firstValueFrom(this.api.getPostByBoard(this.board.slug, this.id));
+        const post = await firstValueFrom(this.api.getPost(this.spaceSlug, this.id));
         this.form.patchValue({
-          boardId: post.boardId ?? this.board.id,
           title: post.title ?? '',
           content: post.content ?? '',
           tags: Array.isArray(post.tags) ? post.tags.join(', ') : '',
-          publishStart: post.publishStart ? String(post.publishStart).slice(0, 16) : '',
-          publishEnd: post.publishEnd ? String(post.publishEnd).slice(0, 16) : ''
+          isPublished: post.isPublished ?? true,
+          publishedAt: post.publishedAt ? String(post.publishedAt).slice(0, 16) : ''
         });
       }
     } catch (err: any) {
@@ -67,8 +54,7 @@ export class PostFormComponent implements OnInit {
   }
 
   async submit() {
-    const targetSlug = this.board?.slug;
-    if (this.form.invalid || !targetSlug) {
+    if (this.form.invalid || !this.spaceSlug) {
       this.form.markAllAsTouched();
       return;
     }
@@ -76,20 +62,20 @@ export class PostFormComponent implements OnInit {
     this.error = undefined;
     try {
       const payload = {
-        ...this.form.value,
+        title: this.form.value.title,
+        content: this.form.value.content,
         tags: this.form.value.tags?.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5),
-        publishStart: this.form.value.publishStart || null,
-        publishEnd: this.form.value.publishEnd || null,
-        boardSlug: targetSlug
+        isPublished: !!this.form.value.isPublished,
+        publishedAt: this.form.value.publishedAt || null
       };
       if (this.id) {
-        await firstValueFrom(this.api.updatePost(targetSlug, this.id, payload));
+        await firstValueFrom(this.api.updatePost(this.spaceSlug, this.id, payload));
       } else {
-        await firstValueFrom(this.api.createPost(payload));
+        await firstValueFrom(this.api.createPost(this.spaceSlug, payload));
       }
-      await this.router.navigate(['/boards', targetSlug, 'posts']);
+      await this.router.navigate(['/spaces', this.spaceSlug, 'posts']);
     } catch (err: any) {
-      this.error = err?.message || '?€???¤íŒ¨';
+      this.error = err?.message || '작성에 실패했습니다.';
     } finally {
       this.loading = false;
     }

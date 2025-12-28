@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { BoardService } from './core/services/board.service';
+import { firstValueFrom } from 'rxjs';
+import { AuthService } from './core/services/auth.service';
+import { SpaceService } from './core/services/space.service';
 
 @Component({
   selector: 'app-root',
@@ -7,20 +9,31 @@ import { BoardService } from './core/services/board.service';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
-  title = 'Forum';
-  defaultBoardSlug?: string | null;
+  title = 'User Spaces';
+  mySpaceSlug?: string | null;
+  user$ = this.auth.user$;
 
-  constructor(private boards: BoardService) {}
+  constructor(private auth: AuthService, private spaces: SpaceService) {}
 
   async ngOnInit(): Promise<void> {
-    this.defaultBoardSlug = await this.boards.getDefaultBoardSlug().catch(() => null);
+    this.auth.user$.subscribe(async user => {
+      this.mySpaceSlug = user?.spaceSlug || null;
+      if (user && !user.spaceSlug) {
+        try {
+          const space = await firstValueFrom(this.spaces.ensureMySpace());
+          this.mySpaceSlug = space.slug;
+        } catch {
+          // ignore
+        }
+      }
+    });
   }
 
   get postsLink() {
-    return this.defaultBoardSlug ? ['/boards', this.defaultBoardSlug, 'posts'] : ['/boards'];
+    return this.mySpaceSlug ? ['/spaces', this.mySpaceSlug, 'posts'] : ['/spaces'];
   }
 
   get newPostLink() {
-    return this.defaultBoardSlug ? ['/boards', this.defaultBoardSlug, 'posts', 'new'] : ['/boards'];
+    return this.mySpaceSlug ? ['/spaces', this.mySpaceSlug, 'posts', 'new'] : ['/login'];
   }
 }

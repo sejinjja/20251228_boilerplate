@@ -1,15 +1,15 @@
-# Express Sample (포트 8080)
+# Express Sample (API 8080)
 
-게시판 API 서버 예시입니다. SQLite를 사용하며 게시판(boards)과 게시글(posts)이 보드 슬러그/ID로 연결됩니다. JWT 인증과 관리자 역할을 지원합니다.
+Velog 스타일 “공간(space)” 블로그 API 예제입니다. 각 사용자는 고유한 `username`(닉네임)을 갖고, 그 username으로 공간을 생성해 게시글을 발행합니다. SQLite + JWT 인증을 사용합니다.
 
-## 요구사항 요약
-- 기본 포트: 8080 (`PORT` 환경변수로만 변경)
-- 인증: JWT access/refresh, `Authorization: Bearer <token>`
-- 게시판: slug 고유, type(free|notice|trade), 관리자만 보드 생성
-- 게시글: 항상 특정 보드에 속함(boardId 필수), 공지 보드는 관리자만 작성/수정/삭제
-- 게시기간: publishStart/publishEnd 범위 밖 글은 작성자/관리자만 조회 가능
+## 개요
+- 포트: 8080 (`PORT`로 변경 가능)
+- 인증: JWT access/refresh (`Authorization: Bearer <token>`)
+- 사용자: `email`(로그인 ID) + 고유 `username` + `displayName`
+- 공간: `slug` 고유, 1:1 소유자(username), 제목/소개
+- 게시글: 공간 slug 기준, authorUsername 기반 권한, 발행/비발행 지원
 
-## 빠른 시작
+## 실행
 ```bash
 npm install
 npm run dev   # nodemon
@@ -17,10 +17,10 @@ npm run dev   # nodemon
 npm run start
 ```
 
-`.env` 예시:
+`.env` 예시
 ```
 PORT=8080
-DATABASE_FILE=./data/forum.sqlite
+DATABASE_FILE=./data/spaces_v3.sqlite
 JWT_SECRET=change-me
 JWT_EXPIRES_IN=30m
 REFRESH_TOKEN_EXPIRES_IN=7d
@@ -30,63 +30,54 @@ RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX=100
 ```
 
-## 주요 엔드포인트 (보드 중심)
-- 보드
-  - GET `/api/boards` (공개) 보드 목록
-  - POST `/api/boards` (관리자) {name, slug, type=free|notice|trade, isDefault?}
-- 게시글 (항상 보드 slug 포함)
-  - GET `/api/boards/:slug/posts` 쿼리: page, pageSize
-  - GET `/api/boards/:slug/posts/:id`
-  - POST `/api/boards/:slug/posts` (로그인, 공지는 관리자만)
-  - PUT `/api/boards/:slug/posts/:id` (작성자/관리자, 공지는 관리자만)
-  - DELETE `/api/boards/:slug/posts/:id` (작성자/관리자, 공지는 관리자만, soft delete)
+## 주요 엔드포인트
+- 공간
+  - GET `/api/spaces` (공개) 공간 목록
+  - GET `/api/spaces/:slug` (공개) 단건 조회
+  - POST `/api/spaces` (인증) 내 공간 생성/확보 { slug?, title?, bio? } — username 기반 중복 검사/자동 생성
+  - PATCH `/api/spaces/:slug` (소유자/관리자) 제목·소개 수정
+- 게시글 (공간 slug 기준)
+  - GET `/api/spaces/:slug/posts` 쿼리: page, pageSize (소유자/관리자는 비발행 포함)
+  - GET `/api/spaces/:slug/posts/:id`
+  - POST `/api/spaces/:slug/posts` (소유자/관리자) { title, content, tags?, isPublished?, publishedAt? }
+  - PUT `/api/spaces/:slug/posts/:id` (작성자 또는 공간 소유자/관리자)
+  - DELETE `/api/spaces/:slug/posts/:id` (작성자 또는 공간 소유자/관리자, soft delete)
 - 인증
-  - POST `/api/auth/signup`
-  - POST `/api/auth/login` -> accessToken, refreshToken
+  - POST `/api/auth/signup` { email, username, displayName, password }
+  - POST `/api/auth/login` -> { accessToken, refreshToken, user:{ email, username, displayName, role, spaceSlug } }
   - POST `/api/auth/refresh`
 - 사용자
-  - GET `/api/users/me`, PATCH `/api/users/me`
-- 댓글/반응 (추후 보드 경로와 일관화 권장)
-  - `/api/posts/:id/comments`, `/api/posts/:id/reactions`
+  - GET `/api/users/me`
+  - PATCH `/api/users/me` (placeholder)
+- 코멘트/리액션 (샘플, 메모리 저장)
+  - `/api/posts/:id/comments`
+  - `/api/posts/:id/reactions`
 
-## 디렉터리 구조
+## 구조
 ```
 backend/express-sample/
   src/
     index.js
-    routes/
-      auth.js
-      boards.js
-      posts.js
-      comments.js
-      reactions.js
-      users.js
-    repositories/
-      db.js
-      boards.js
-      posts.js
-    middleware/
-      auth.js
-      error.js
-    services/
-      (비즈니스 로직 추가 시 분리)
+    routes/ (auth, spaces, posts, comments, reactions, users)
+    repositories/ (db, spaces, posts, users)
+    middleware/ (auth, error)
 ```
 
-## 인증/권한
-- JWT 시크릿: `JWT_SECRET` (없으면 dev 기본값 사용). access 짧게, refresh 길게.
-- 공지(notice) 보드는 관리자만 작성/수정/삭제.
-- 게시기간 밖 글은 작성자/관리자만 조회 가능.
-- 삭제는 soft delete(`deletedAt`).
+## 설계/제약
+- JWT 페이로드: { sub: email, username, role, displayName }
+- 권한: 공간 소유자(username) 또는 관리자만 공간/게시글 생성·수정·삭제 가능. 게시글 수정/삭제는 작성자(username)도 허용.
+- 게시글 발행 상태: `isPublished`, `publishedAt`; 비발행 게시글은 소유자/관리자만 조회.
+- Soft delete: 게시글 `deletedAt`.
 
-## 입력 제약
-- 제목 ≤120, 본문 10~10,000, 태그 ≤5개(각 20자), 게시기간 ISO datetime.
-- 페이지네이션: pageSize 기본 10, 최대 50.
+## 필드/검증
+- 제목 ≤120자, 본문 10~10,000자, 태그 최대 5개.
+- username/space slug 고유; slug는 기본적으로 username 기반으로 중복 시 숫자 suffix.
+- 페이지네이션: 기본 pageSize 10, 최대 50.
 
 ## 로컬 DB
-- SQLite 파일: `./data/forum.sqlite` (ENV로 경로 변경 가능)
-- 기본 보드 자동 생성: 자유(free), 공지(notice), 중고거래(trade).
+- SQLite: `./data/spaces_v3.sqlite` (환경변수로 교체 가능).
 
-## 품질 체크
-- CORS origin 제한, rate limit 설정 확인.
-- 에러 포맷: `{ "error": { "code": "...", "message": "..." } }` 사용.
-- 테스트: 로그인/리프레시, 보드 생성(관리자), 보드별 게시글 CRUD, 게시기간/권한 경계, 401/403/404 응답 확인.
+## 보안 체크
+- CORS 허용 도메인, rate limit 적용.
+- 오류 포맷: `{ "error": { "code": "...", "message": "..." } }`.
+- 코멘트/리액션은 데모용 메모리 저장(실서비스 시 DB 전환 필요).

@@ -1,21 +1,23 @@
 const db = require('./db');
-const boardsRepo = require('./boards');
+const spacesRepo = require('./spaces');
 
-async function list({ page = 1, pageSize = 10, boardId, includeUnpublished = false } = {}) {
+function list({ page = 1, pageSize = 10, spaceSlug, includeUnpublished = false } = {}) {
   const size = Math.min(Math.max(Number(pageSize) || 10, 1), 50);
   const offset = (Math.max(Number(page) || 1, 1) - 1) * size;
-  const nowClause = includeUnpublished ? '' : "AND (publishStart IS NULL OR publishStart <= datetime('now')) AND (publishEnd IS NULL OR publishEnd >= datetime('now'))";
-  const boardClause = boardId ? 'AND boardId = ?' : '';
+  const publishClause = includeUnpublished ? '' : 'AND isPublished = 1 AND (publishedAt IS NULL OR publishedAt <= datetime(\'now\'))';
   const params = [];
-  if (boardId) params.push(boardId);
+  const where = ['deletedAt IS NULL'];
+  if (spaceSlug) {
+    where.push('spaceSlug = ?');
+    params.push(spaceSlug);
+  }
   params.push(size, offset);
-  const countParams = [];
-  if (boardId) countParams.push(boardId);
+  const countParams = spaceSlug ? [spaceSlug] : [];
   return new Promise((resolve, reject) => {
     db.all(
-      `SELECT id, title, content, tags, author, boardId, publishStart, publishEnd, createdAt, updatedAt
+      `SELECT id, title, content, tags, authorUsername, spaceSlug, slug, isPublished, publishedAt, createdAt, updatedAt
        FROM posts
-       WHERE deletedAt IS NULL ${boardClause} ${nowClause}
+       WHERE ${where.join(' AND ')} ${publishClause}
        ORDER BY createdAt DESC
        LIMIT ? OFFSET ?`,
       params,
@@ -23,11 +25,11 @@ async function list({ page = 1, pageSize = 10, boardId, includeUnpublished = fal
         if (err) return reject(err);
         const parsed = rows.map(r => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
         db.get(
-          `SELECT COUNT(*) as total FROM posts WHERE deletedAt IS NULL ${boardClause} ${nowClause}`,
+          `SELECT COUNT(*) as total FROM posts WHERE ${where.join(' AND ')} ${publishClause}`,
           countParams,
           (countErr, countRow) => {
             if (countErr) return reject(countErr);
-            resolve({ data: parsed, total: countRow.total || 0, page: Math.max(Number(page) || 1, 1), pageSize: size });
+            resolve({ data: parsed, total: countRow?.total || 0, page: Math.max(Number(page) || 1, 1), pageSize: size });
           }
         );
       }
@@ -38,7 +40,8 @@ async function list({ page = 1, pageSize = 10, boardId, includeUnpublished = fal
 function findById(id) {
   return new Promise((resolve, reject) => {
     db.get(
-      'SELECT id, title, content, tags, author, boardId, publishStart, publishEnd, createdAt, updatedAt, deletedAt FROM posts WHERE id = ?',
+      `SELECT id, title, content, tags, authorUsername, spaceSlug, slug, isPublished, publishedAt, createdAt, updatedAt, deletedAt
+       FROM posts WHERE id = ?`,
       [id],
       (err, row) => {
         if (err) return reject(err);
@@ -49,31 +52,66 @@ function findById(id) {
   });
 }
 
-async function create({ title, content, tags = [], boardId, publishStart, publishEnd, author }) {
-  let targetBoardId = boardId;
-  if (!targetBoardId) {
-    const boards = await boardsRepo.ensureDefaults();
-    const defaultBoard = boards.find(b => b.isDefault) || boards[0];
-    targetBoardId = defaultBoard?.id;
+function slugify(text) {
+  return (text || '')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-') || 'post';
+}
+
+async function nextSlug(spaceSlug, title) {
+  const base = slugify(title);
+  let candidate = base;
+  let suffix = 2;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const existing = await new Promise((resolve, reject) => {
+      db.get('SELECT id FROM posts WHERE spaceSlug = ? AND slug = ?', [spaceSlug, candidate], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+    if (!existing) break;
+    candidate = `${base}-${suffix++}`;
   }
+  return candidate;
+}
+
+async function create({ title, content, tags = [], spaceSlug, authorUsername, isPublished = true, publishedAt = null }) {
+  if (!spaceSlug) throw new Error('SPACE_REQUIRED');
+  const postSlug = await nextSlug(spaceSlug, title);
   return new Promise((resolve, reject) => {
     db.run(
-      'INSERT INTO posts (title, content, tags, author, boardId, publishStart, publishEnd) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [title, content, JSON.stringify(tags), author, targetBoardId, publishStart || null, publishEnd || null],
+      'INSERT INTO posts (title, content, tags, authorUsername, spaceSlug, slug, isPublished, publishedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [title, content, JSON.stringify(tags), authorUsername, spaceSlug, postSlug, isPublished ? 1 : 0, publishedAt],
       function (err) {
         if (err) return reject(err);
-        resolve({ id: this.lastID, title, content, tags, author, boardId: targetBoardId, publishStart, publishEnd, createdAt: new Date().toISOString() });
+        resolve({
+          id: this.lastID,
+          title,
+          content,
+          tags,
+          authorUsername,
+          spaceSlug,
+          slug: postSlug,
+          isPublished: isPublished ? 1 : 0,
+          publishedAt,
+          createdAt: new Date().toISOString()
+        });
       }
     );
   });
 }
 
 function update(id, data) {
+  const { title, content, tags, spaceSlug, isPublished, publishedAt } = data;
   return new Promise((resolve, reject) => {
-    const { title, content, tags, boardId, publishStart, publishEnd } = data;
     db.run(
-      "UPDATE posts SET title = ?, content = ?, tags = ?, boardId = ?, publishStart = ?, publishEnd = ?, updatedAt = datetime('now') WHERE id = ?",
-      [title, content, JSON.stringify(tags), boardId, publishStart || null, publishEnd || null, id],
+      "UPDATE posts SET title = ?, content = ?, tags = ?, spaceSlug = ?, isPublished = ?, publishedAt = ?, updatedAt = datetime('now') WHERE id = ?",
+      [title, content, JSON.stringify(tags), spaceSlug, isPublished ? 1 : 0, publishedAt, id],
       err => {
         if (err) return reject(err);
         findById(id).then(resolve).catch(reject);
@@ -84,7 +122,7 @@ function update(id, data) {
 
 function softDelete(id) {
   return new Promise((resolve, reject) => {
-    db.run('UPDATE posts SET deletedAt = datetime(\'now\') WHERE id = ?', [id], err => {
+    db.run("UPDATE posts SET deletedAt = datetime('now') WHERE id = ?", [id], err => {
       if (err) return reject(err);
       resolve();
     });

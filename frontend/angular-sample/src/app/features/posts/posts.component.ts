@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
-import { BoardService, Board } from '../../core/services/board.service';
+import { SpaceService, Space } from '../../core/services/space.service';
 
 @Component({
   selector: 'app-posts',
@@ -11,9 +11,9 @@ import { BoardService, Board } from '../../core/services/board.service';
 export class PostsComponent implements OnInit {
   posts: any[] = [];
   loading = false;
-  board?: Board;
+  space?: Space;
 
-  constructor(private api: ApiService, private route: ActivatedRoute, private router: Router, private boards: BoardService) {}
+  constructor(private api: ApiService, private route: ActivatedRoute, private router: Router, private spaces: SpaceService) {}
 
   async ngOnInit(): Promise<void> {
     await this.load();
@@ -22,21 +22,19 @@ export class PostsComponent implements OnInit {
   async load(page = 1) {
     this.loading = true;
     try {
-      const boardList = await firstValueFrom(this.boards.getBoards());
       const slugParam = this.route.snapshot.paramMap.get('slug');
-      this.board = boardList.find(b => b.slug === slugParam) || boardList.find(b => b.isDefault) || boardList[0];
-      if (!this.board) {
-        await this.router.navigate(['/boards']);
+      if (!slugParam) {
+        await this.router.navigate(['/spaces']);
         return;
       }
-      if (!slugParam || slugParam !== this.board.slug) {
-        this.router.navigate(['/boards', this.board.slug, 'posts']);
-      }
-      const res: any = await firstValueFrom(this.api.getPosts({ page, boardSlug: this.board.slug }));
+      this.space = await firstValueFrom(this.spaces.getSpace(slugParam));
+      const res: any = await firstValueFrom(this.api.getPosts({ page, spaceSlug: slugParam }));
+      this.space = res?.space || this.space;
       this.posts = res?.data || res?.posts || [];
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(err);
+      await this.router.navigate(['/spaces']);
     } finally {
       this.loading = false;
     }

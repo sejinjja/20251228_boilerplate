@@ -1,9 +1,9 @@
-<h2>{{ board?.name || 'Posts' }}</h2>
+<h2>{{ space?.title || ('@' + space?.slug) || 'Posts' }}</h2>
 <div *ngIf="loading">Loading...</div>
 <ul>
   <li *ngFor="let post of posts">
-    <a [routerLink]="['/boards', board?.slug, 'posts', post.id]">{{ post.title }}</a>
-    <span>by {{ post.author }}</span>
+    <a [routerLink]="['/spaces', space?.slug, 'posts', post.id]">{{ post.title }}</a>
+    <span>by {{ post.authorUsername || post.author }}</span>
   </li>
 </ul>
-<a [routerLink]="['/boards', board?.slug, 'posts', 'new']">새 글 작성</a>
+<a [routerLink]="['/spaces', space?.slug, 'posts', 'new']">새 글 쓰기</a>

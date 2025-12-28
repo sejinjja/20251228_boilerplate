@@ -1,18 +1,32 @@
 import { Component, OnInit } from '@angular/core';
-import { BoardService } from '../../core/services/board.service';
+import { firstValueFrom } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
+import { SpaceService } from '../../core/services/space.service';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html'
 })
 export class HomeComponent implements OnInit {
-  postsLink: string | any[] = '/boards';
+  postsLink: string | any[] = '/spaces';
 
-  constructor(private boards: BoardService) {}
+  constructor(private auth: AuthService, private spaces: SpaceService) {}
 
   async ngOnInit(): Promise<void> {
-    const slug = await this.boards.getDefaultBoardSlug().catch(() => null);
-    this.postsLink = slug ? ['/boards', slug, 'posts'] : '/boards';
+    this.auth.user$.subscribe(async user => {
+      if (user?.spaceSlug) {
+        this.postsLink = ['/spaces', user.spaceSlug, 'posts'];
+      } else if (user) {
+        try {
+          const space = await firstValueFrom(this.spaces.ensureMySpace());
+          this.postsLink = ['/spaces', space.slug, 'posts'];
+        } catch {
+          this.postsLink = '/spaces';
+        }
+      } else {
+        this.postsLink = '/spaces';
+      }
+    });
   }
 }
 

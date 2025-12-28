@@ -8,16 +8,16 @@ import { PostsComponent } from './features/posts/posts.component';
 import { PostDetailComponent } from './features/posts/post-detail.component';
 import { PostFormComponent } from './features/posts/post-form.component';
 import { ProfileComponent } from './features/profile/profile.component';
-import { BoardsComponent } from './features/boards/boards.component';
+import { SpacesComponent } from './features/spaces/spaces.component';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent },
-  { path: 'boards', component: BoardsComponent },
-  { path: 'boards/:slug/posts', component: PostsComponent },
-  { path: 'boards/:slug/posts/new', canActivate: [AuthGuard], component: PostFormComponent },
-  { path: 'boards/:slug/posts/:id', component: PostDetailComponent },
-  { path: 'boards/:slug/posts/:id/edit', canActivate: [AuthGuard], component: PostFormComponent },
+  { path: 'spaces', component: SpacesComponent },
+  { path: 'spaces/:slug/posts', component: PostsComponent },
+  { path: 'spaces/:slug/posts/new', canActivate: [AuthGuard], component: PostFormComponent },
+  { path: 'spaces/:slug/posts/:id', component: PostDetailComponent },
+  { path: 'spaces/:slug/posts/:id/edit', canActivate: [AuthGuard], component: PostFormComponent },
   { path: 'profile', canActivate: [AuthGuard], component: ProfileComponent },
   { path: '', pathMatch: 'full', component: HomeComponent },
   { path: '**', redirectTo: '' }

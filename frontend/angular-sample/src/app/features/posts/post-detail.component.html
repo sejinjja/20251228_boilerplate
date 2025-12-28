@@ -2,6 +2,6 @@
 <section *ngIf="post">
   <h2>{{ post.title }}</h2>
   <p>{{ post.content }}</p>
-  <div><small>게시판: {{ post.board?.name || post.boardId }}</small></div>
-  <small>작성자: {{ post.author }}</small>
+  <div><small>&#64;{{ post.spaceSlug }}</small></div>
+  <small>by {{ post.authorUsername || post.author }}</small>
 </section>
