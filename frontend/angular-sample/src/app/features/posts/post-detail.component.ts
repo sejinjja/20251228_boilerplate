@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 
 @Component({
@@ -21,9 +22,10 @@ export class PostDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
     try {
-      this.post = await this.api.getPost(id).toPromise();
+      this.post = await firstValueFrom(this.api.getPost(id));
     } finally {
       this.loading = false;
     }
   }
 }
+

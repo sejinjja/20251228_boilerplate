@@ -1,8 +1,9 @@
-<h2>{{ id ? '±Û ¼öÁ¤' : '±Û ÀÛ¼º' }}</h2>
+ï»¿<h2>{{ id ? 'ê¸€ ìˆ˜ì •' : 'ê¸€ ìž‘ì„±' }}</h2>
 <form [formGroup]="form" (ngSubmit)="submit()">
-  <label>Á¦¸ñ <input formControlName="title" /></label>
-  <label>º»¹® <textarea formControlName="content"></textarea></label>
-  <label>ÅÂ±×(ÄÞ¸¶ ±¸ºÐ, ÃÖ´ë 5°³) <input formControlName="tags" /></label>
-  <button type="submit" [disabled]="loading">ÀúÀå</button>
+  <label>ì œëª© <input formControlName="title" /></label>
+  <label>ë³¸ë¬¸ <textarea formControlName="content"></textarea></label>
+  <label>íƒœê·¸(ì½¤ë§ˆ êµ¬ë¶„, ìµœëŒ€ 5ê°œ) <input formControlName="tags" /></label>
+  <button type="submit" [disabled]="loading">ì €ìž¥</button>
   <div *ngIf="error" class="error">{{ error }}</div>
 </form>
+

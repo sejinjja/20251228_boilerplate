@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+ï»¿import { Component } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
-import { ApiService } from '../../core/services/api.service';
 import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-post-form',
@@ -26,15 +27,16 @@ export class PostFormComponent {
     try {
       const payload = { ...this.form.value, tags: this.form.value.tags?.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5) };
       if (this.id) {
-        await this.api.updatePost(this.id, payload).toPromise();
+        await firstValueFrom(this.api.updatePost(this.id, payload));
       } else {
-        await this.api.createPost(payload).toPromise();
+        await firstValueFrom(this.api.createPost(payload));
       }
       await this.router.navigate(['/posts']);
     } catch (err: any) {
-      this.error = err?.message || 'ÀúÀå ½ÇÆÐ';
+      this.error = err?.message || 'ì €ìž¥ ì‹¤íŒ¨';
     } finally {
       this.loading = false;
     }
   }
 }
+

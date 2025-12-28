@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+ο»Ώimport { Component } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -6,5 +6,6 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = '°Τ½ΓΖΗ Ε¬¶σΐΜΎπΖ®';
+  title = 'κ²μ‹ν ν΄λΌμ΄μ–ΈνΈ';
 }
+

@@ -1,4 +1,4 @@
-{
+﻿{
   "compileOnSave": false,
   "compilerOptions": {
     "baseUrl": "./",
@@ -11,6 +11,7 @@
     "allowSyntheticDefaultImports": true,
     "target": "es2022",
     "typeRoots": ["node_modules/@types"],
+    "types": [],
     "lib": ["es2023", "dom"],
     "useDefineForClassFields": false
   },
@@ -21,3 +22,4 @@
     "strictTemplates": true
   }
 }
+

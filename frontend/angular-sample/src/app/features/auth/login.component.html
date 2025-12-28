@@ -1,7 +1,8 @@
-<h2>Login</h2>
+ï»¿<h2>Login</h2>
 <form [formGroup]="form" (ngSubmit)="submit()">
   <label>Email <input formControlName="email" type="email" /></label>
   <label>Password <input formControlName="password" type="password" /></label>
-  <button type="submit" [disabled]="loading">·Î±×ÀÎ</button>
+  <button type="submit" [disabled]="loading">ë¡œê·¸ì¸</button>
   <div *ngIf="error" class="error">{{ error }}</div>
 </form>
+

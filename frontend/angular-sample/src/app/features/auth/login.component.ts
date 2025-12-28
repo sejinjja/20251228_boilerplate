@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+Ôªøimport { Component } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { Router } from '@angular/router';
@@ -25,9 +25,10 @@ export class LoginComponent {
       await this.auth.login(this.form.value.email!, this.form.value.password!);
       await this.router.navigate(['/posts']);
     } catch (err: any) {
-      this.error = err?.message || '∑Œ±◊¿Œ Ω«∆–';
+      this.error = err?.message || 'Î°úÍ∑∏Ïù∏ Ïã§Ìå®';
     } finally {
       this.loading = false;
     }
   }
 }
+

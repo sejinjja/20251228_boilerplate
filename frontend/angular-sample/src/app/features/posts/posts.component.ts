@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 
 @Component({
@@ -18,10 +19,11 @@ export class PostsComponent implements OnInit {
   async load(page = 1) {
     this.loading = true;
     try {
-      const res = await this.api.getPosts({ page }).toPromise();
+      const res = await firstValueFrom(this.api.getPosts({ page }));
       this.posts = res?.data || [];
     } finally {
       this.loading = false;
     }
   }
 }
+
