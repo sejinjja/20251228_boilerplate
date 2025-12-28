@@ -1,7 +1,7 @@
 **/node_modules/
-/.vscode/
-/.DS_Store
+**/.vscode/
+**/.DS_Store
 .env.local
 .env.*.local
 **/.angular/cache/
-dist/
+**/dist/
